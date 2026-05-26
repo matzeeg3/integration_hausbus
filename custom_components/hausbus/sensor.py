@@ -635,12 +635,16 @@ class HausbusRfidSensor(HausbusSensor):
             LOGGER.debug(f"rfid data: {data}")
             self._attr_native_value = data.getTagID()
             self._attr_extra_state_attributes["last_tag"] = self._attr_native_value
-            self._attr_extra_state_attributes["last_time"] = datetime.now(UTC).isoformat()
+            self._attr_extra_state_attributes["last_time"] = datetime.now(
+                UTC
+            ).isoformat()
             self._attr_extra_state_attributes["last_error"] = ""
             self._write_state()
 
         elif isinstance(data, RfidEvError):
             LOGGER.debug(f"rfid error: {data}")
             self._attr_extra_state_attributes["last_tag"] = ""
-            self._attr_extra_state_attributes["last_time"] = datetime.now(UTC).isoformat()
+            self._attr_extra_state_attributes["last_time"] = datetime.now(
+                UTC
+            ).isoformat()
             self._attr_extra_state_attributes["last_error"] = data.getErrorCode()
