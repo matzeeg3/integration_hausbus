@@ -5,8 +5,8 @@
     "@matzeeg3"
   ],
   "config_flow": true,
-  "homeassistant": "2025.2.4",
   "documentation": "https://haus-bus.de",
+  "issue_tracker": "https://github.com/matzeeg3/integration_hausbus/issues",
   "iot_class": "local_push",
   "loggers": [
     "pyhausbus"

@@ -7,9 +7,14 @@ discover_devices:
 reset_device:
   name: Reset Device
   description: Resets a device controller
-  target:
-    device:
-      integration: hausbus
+  fields:
+    device_id:
+      name: Device
+      description: The Haus-Bus device to reset
+      required: true
+      selector:
+        device:
+          integration: hausbus
         
 #DIMMER services
 dimmer_set_brightness:
