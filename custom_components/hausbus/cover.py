@@ -141,20 +141,20 @@ class HausbusCover(HausbusEntity, CoverEntity):
               self._is_closing = True
             else:
               LOGGER.debug(f"unexpected direction {direction}")
-            self.schedule_update_ha_state()
+            self._write_state()
         elif isinstance(data, EvClosed):
             self._is_opening = False
             self._is_closing = False
             self._position = 100 - data.getPosition()
-            self.schedule_update_ha_state()
+            self._write_state()
         elif isinstance(data, EvOpen):
             self._is_opening = False
             self._is_closing = False
             self._position = 100
-            self.schedule_update_ha_state()
+            self._write_state()
         elif isinstance(data, Status):
             self._position = 100 - data.getPosition()
-            self.schedule_update_ha_state()
+            self._write_state()
         elif isinstance(data, Configuration):
             self._configuration = data
             self._attr_extra_state_attributes["close_time"] = data.getCloseTime()

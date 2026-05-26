@@ -140,7 +140,7 @@ class HausbusBinarySensor(HausbusEntity, BinarySensorEntity):
             state_changed = True
 
         if state_changed:
-            self.schedule_update_ha_state()
+            self._write_state()
 
     async def async_push_button_configure_events(self, eventActivationStatus: str, disabled_duration:int):
         """Disables all events from this input for the given time or activates them again."""

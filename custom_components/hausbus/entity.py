@@ -24,22 +24,23 @@ class HausbusEntity(Entity):
     def __init__(self, channel: ABusFeature, device: HausbusDevice, alternativeType: str | None = None) -> None:
         """Set up channel."""
         super().__init__()
-        
+
         self._channel=channel
         self._device = device
+        self._loop: asyncio.AbstractEventLoop | None = None
 
         self._type = "to be overridden"
         self._attr_name = "to be overridden"
         self._attr_unique_id = "to be overridden"
-        
+
         if channel is not None:
           self._type = channel.__class__.__name__.lower()
           self._attr_name = channel.getName()
           self._attr_unique_id = f"{self._device.device_id}-{self._type}-{ObjectId(channel.getObjectId()).getInstanceId()}"
-          
+
         if alternativeType is not None:
           self._type = alternativeType
-          
+
         self._attr_device_info = self._device.device_info
         self._attr_translation_key = self._type
         self._attr_extra_state_attributes = {}
@@ -60,8 +61,16 @@ class HausbusEntity(Entity):
         """State push update."""
         raise NotImplementedError
 
+    def _write_state(self) -> None:
+        """Write HA state thread-safely. Safe to call from non-async bus callbacks."""
+        if self._loop is None or self.hass is None:
+            return
+        self._loop.call_soon_threadsafe(self.async_write_ha_state)
+
     async def async_added_to_hass(self):
       """Called when entity is added to HA."""
+      await super().async_added_to_hass()
+      self._loop = asyncio.get_running_loop()
       registry = er.async_get(self.hass)
       registry.async_update_entity_options(self.entity_id, DOMAIN, {"hausbus_type": self.__class__.__name__})
       if self._special_type!=0:

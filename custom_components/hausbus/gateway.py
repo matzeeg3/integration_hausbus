@@ -77,6 +77,7 @@ class HausbusGateway(IBusDataListener):  # type: ignore[misc]
         """Initialize the system."""
         self.hass = hass
         self.config_entry = config_entry
+        self._loop = asyncio.get_running_loop()
         self.devices: dict[str, HausbusDevice] = {}
         self.channels: dict[str, dict[tuple[str, str], HausbusEntity]] = {}
         self.events: dict[int, HausBusEvent] = {}
@@ -110,7 +111,7 @@ class HausbusGateway(IBusDataListener):  # type: ignore[misc]
       await discovery_callback()
 
     def addStandaloneButton(self, uniqueId: str, name:str, callback: Callable[[], Coroutine[Any, Any, None]]):
-      asyncio.run_coroutine_threadsafe(self._new_channel_listeners[BUTTON_DOMAIN](HausbusButton(uniqueId, name, callback)), self.hass.loop)
+      asyncio.run_coroutine_threadsafe(self._new_channel_listeners[BUTTON_DOMAIN](HausbusButton(uniqueId, name, callback)), self._loop)
 
     def add_device(self, device_id: str, module: ModuleId) -> None:
         """Add a new Haus-Bus Device to this gateway's device list."""
@@ -193,7 +194,7 @@ class HausbusGateway(IBusDataListener):  # type: ignore[misc]
         )
 
         asyncio.run_coroutine_threadsafe(
-            self.async_register_device(device_id, device_info, device), self.hass.loop
+            self.async_register_device(device_id, device_info, device), self._loop
         ).result()
 
         # Inputs merken für die Trigger
@@ -261,16 +262,16 @@ class HausbusGateway(IBusDataListener):  # type: ignore[misc]
                     LOGGER.debug(f"new channel {new_entity.__class__.__name__} for {channel}") 
                     channel_list = self.get_channel_list(ObjectId(object_id))
                     channel_list[self.get_channel_id(ObjectId(object_id))] = new_entity
-                    asyncio.run_coroutine_threadsafe(self._new_channel_listeners[new_domain](new_entity), self.hass.loop).result()
-                    LOGGER.debug("registered. Reading status...") 
+                    asyncio.run_coroutine_threadsafe(self._new_channel_listeners[new_domain](new_entity), self._loop).result()
+                    LOGGER.debug("registered. Reading status...")
                     new_entity.get_hardware_status()
-                    
+
                     # additional EventEnties for all binary inputs and pushbuttons
                     if isinstance(channel, Taster) and self.get_event_entity(channel.getObjectId()) is None:
                       LOGGER.debug(f"create event channel for {channel}")
                       new_channel = HausBusEvent(channel, device)
                       self.events[channel.getObjectId()] = new_channel
-                      asyncio.run_coroutine_threadsafe(self._new_channel_listeners["EVENTS"](new_channel), self.hass.loop).result()
+                      asyncio.run_coroutine_threadsafe(self._new_channel_listeners["EVENTS"](new_channel), self._loop).result()
                     
                     # Bei allen Taster Instanzen die Events anlegen, weil da auch ein Taster angeschlossen sein kann
                     if isinstance(channel, Taster):
@@ -316,7 +317,7 @@ class HausbusGateway(IBusDataListener):  # type: ignore[misc]
 
         if isinstance(channel, HausbusRfidSensor) and isinstance(data, RfidEvData):
           LOGGER.debug(f" rfid data {channel} {data}")
-          self.hass.loop.call_soon_threadsafe(lambda: self.hass.bus.async_fire("hausbus_rfid_event", {"device_id": device.hass_device_entry_id, "tag": data.getTagID()}))
+          self._loop.call_soon_threadsafe(self.hass.bus.async_fire, "hausbus_rfid_event", {"device_id": device.hass_device_entry_id, "tag": data.getTagID()})
 
         else:
           LOGGER.debug(f"kein zugehöriger channel")
@@ -337,7 +338,7 @@ class HausbusGateway(IBusDataListener):  # type: ignore[misc]
           name = Templates.get_instance().get_feature_name_from_template(device.firmware_id, device.fcke, object_id.getClassId(), object_id.getInstanceId())
           if name is not None:
             LOGGER.debug(f"sending trigger {eventType} name {name} hass_device_id {device.hass_device_entry_id}")
-            self.hass.loop.call_soon_threadsafe(lambda: self.hass.bus.async_fire("hausbus_button_event", {"device_id": device.hass_device_entry_id, "type": eventType, "subtype": name}))
+            self._loop.call_soon_threadsafe(self.hass.bus.async_fire, "hausbus_button_event", {"device_id": device.hass_device_entry_id, "type": eventType, "subtype": name})
           else:
             LOGGER.debug(f"unknown name for event {data}")
 

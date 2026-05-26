@@ -66,7 +66,7 @@ class HausbusControl(HausbusEntity, NumberEntity):
 
     def set_native_value_internal(self, native_value: float):
       self._value = native_value
-      self.hass.loop.call_soon_threadsafe(self.async_write_ha_state)
+      self._write_state()
 
     @property
     def native_value(self):

@@ -232,7 +232,7 @@ class HausbusLight(HausbusEntity, LightEntity):
             state_changed = True
 
         if state_changed:
-            self.schedule_update_ha_state()
+            self._write_state()
 
 
 class HausbusDimmerLight(HausbusLight):

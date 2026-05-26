@@ -137,7 +137,7 @@ class HausbusSwitch(HausbusEntity, SwitchEntity):
             state_changed = True
 
         if state_changed:
-            self.schedule_update_ha_state()
+            self._write_state()
 
     @callback
     async def async_switch_off(self, offDelay:int):

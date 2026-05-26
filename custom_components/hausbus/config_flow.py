@@ -55,7 +55,7 @@ STEP_FIXED_IP_SCHEMA = vol.Schema(
 )
 
 
-class ConfigFlow(IBusDataListener, config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[misc]
+class ConfigFlow(config_entries.ConfigFlow, IBusDataListener, domain=DOMAIN):  # type: ignore[misc]
     """Handle a config flow for hausbus."""
 
     def __init__(self) -> None:

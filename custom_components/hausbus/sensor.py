@@ -172,7 +172,7 @@ class HausbusTemperaturSensor(HausbusSensor):
           value = float(data.getCelsius()) + float(data.getCentiCelsius()) / 100
           LOGGER.debug(f"Temperatur empfangen: {value} °C")
           self._attr_native_value = value
-          self.schedule_update_ha_state() 
+          self._write_state()
         elif isinstance(data, TemperaturSensorConfiguration):
             self._configuration = data
 
@@ -211,7 +211,7 @@ class HausbusPowerMeter(HausbusSensor):
           value = float(data.getPower()) + float(data.getCentiPower()) / 100
           LOGGER.debug(f"Power empfangen: {value} kW")
           self._attr_native_value = value
-          self.schedule_update_ha_state() 
+          self._write_state()
         elif isinstance(data, PowerMeterConfiguration):
             self._configuration = data
 
@@ -251,7 +251,7 @@ class HausbusBrightnessSensor(HausbusSensor):
           value = float(data.getBrightness())
           LOGGER.debug(f"Helligkeit empfangen: {value} lx")
           self._attr_native_value = value
-          self.schedule_update_ha_state() 
+          self._write_state()
         elif isinstance(data, HelligkeitsSensorConfiguration):
             self._configuration = data
 
@@ -291,7 +291,7 @@ class HausbusHumiditySensor(HausbusSensor):
           value = float(data.getRelativeHumidity()) + float(data.getCentiHumidity()) / 100
           LOGGER.debug(f"Feuchtigkeit empfangen: {value} %")
           self._attr_native_value = value
-          self.schedule_update_ha_state() 
+          self._write_state()
         elif isinstance(data, FeuchteSensorConfiguration):
             self._configuration = data
 
@@ -330,7 +330,7 @@ class HausbusAnalogEingang(HausbusSensor):
           value = data.getValue()
           LOGGER.debug(f"Analogwert empfangen: {value}")
           self._attr_native_value = value
-          self.schedule_update_ha_state() 
+          self._write_state()
         elif isinstance(data, AnalogEingangConfiguration):
             self._configuration = data
 
@@ -376,7 +376,7 @@ class HausbusRfidSensor(HausbusSensor):
           self._attr_extra_state_attributes["last_tag"] = self._attr_native_value
           self._attr_extra_state_attributes["last_time"] = datetime.now().isoformat()
           self._attr_extra_state_attributes["last_error"] = ""
-          self.schedule_update_ha_state()
+          self._write_state()
            
         elif isinstance(data, RfidEvError):
           LOGGER.debug(f"rfid error: {data}")

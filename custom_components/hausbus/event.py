@@ -68,6 +68,11 @@ class HausBusEvent(HausbusEntity, EventEntity):
     #    """Check if a event is relevant for an event channel."""
     #    return isinstance(data, (EvCovered, EvFree, EvHoldStart, EvHoldEnd, EvClicked, EvDoubleClick, TasterConfiguration, Enabled))
 
+    def _fire_event(self, event_type: str) -> None:
+        """Trigger event and write state. Must be called from the HA event loop."""
+        self._trigger_event(event_type)
+        self.async_write_ha_state()
+
     def handle_event(self, data: Any) -> None:
         """Handle taster events from Haus-Bus."""
 
@@ -83,8 +88,8 @@ class HausBusEvent(HausbusEntity, EventEntity):
 
           if eventType != "unknown":
             LOGGER.debug(f"sending event {eventType}")
-            self._trigger_event(eventType)
-            self.schedule_update_ha_state()
+            if self._loop is not None:
+              self._loop.call_soon_threadsafe(self._fire_event, eventType)
 
         elif isinstance(data, Enabled):
           self._attr_extra_state_attributes["eventActivationStatus"] = ("DISABLED" if data.getEnabled() == 0 else "ENABLED")
