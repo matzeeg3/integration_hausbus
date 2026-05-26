@@ -1,19 +1,41 @@
 {
   "config": {
-    "flow_title": "{host}",
+    "flow_title": "Haus-Bus",
     "step": {
       "user": {
-        "description": "Perform auto-discovery of Haus-Bus devices."
+        "title": "Haus-Bus einrichten",
+        "description": "Wählen Sie die Verbindungsart.",
+        "data": {
+          "connection_type": "Verbindungsart"
+        }
+      },
+      "fixed_ip": {
+        "title": "Feste IP-Adresse",
+        "description": "Geben Sie die IP-Adresse des Haus-Bus Geräts ein.",
+        "data": {
+          "host": "IP-Adresse"
+        }
       },
       "search_timeout": {
-        "description": "Device discovery timeout. Click Submit to try again."
+        "description": "Zeitüberschreitung bei der Gerätesuche. Klicken Sie auf Senden, um es erneut zu versuchen."
       }
     },
     "progress": {
-      "wait_for_device": "Searching for Haus-Bus devices..."
+      "wait_for_device": "Suche nach Haus-Bus Geräten..."
+    },
+    "error": {
+      "invalid_host": "Ungültige IP-Adresse."
     },
     "abort": {
       "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+    }
+  },
+  "selector": {
+    "connection_type": {
+      "options": {
+        "auto": "Auto-Discovery",
+        "fixed_ip": "Feste IP-Adresse"
+      }
     }
   },
   "entity": {

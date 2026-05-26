@@ -3,16 +3,38 @@
         "abort": {
             "already_configured": "Device is already configured"
         },
-        "flow_title": "{host}",
+        "flow_title": "Haus-Bus",
         "progress": {
             "wait_for_device": "Searching for Haus-Bus devices..."
         },
         "step": {
+            "user": {
+                "title": "Set up Haus-Bus",
+                "description": "Choose the connection type.",
+                "data": {
+                    "connection_type": "Connection type"
+                }
+            },
+            "fixed_ip": {
+                "title": "Fixed IP address",
+                "description": "Enter the IP address of the Haus-Bus device.",
+                "data": {
+                    "host": "IP address"
+                }
+            },
             "search_timeout": {
                 "description": "Device discovery timeout. Click Submit to try again."
-            },
-            "user": {
-                "description": "Perform auto-discovery of Haus-Bus devices."
+            }
+        },
+        "error": {
+            "invalid_host": "Invalid IP address."
+        }
+    },
+    "selector": {
+        "connection_type": {
+            "options": {
+                "auto": "Auto-Discovery",
+                "fixed_ip": "Fixed IP address"
             }
         }
     },

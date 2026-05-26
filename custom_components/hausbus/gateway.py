@@ -16,10 +16,13 @@ from pyhausbus.de.hausbus.homeassistant.proxy.controller.data.ModuleId import Mo
 from pyhausbus.de.hausbus.homeassistant.proxy.controller.data.RemoteObjects import RemoteObjects
 
 import re
+from pyhausbus.BusHandler import BusHandler
 from pyhausbus.HausBusUtils import HOMESERVER_DEVICE_ID
 from pyhausbus.HomeServer import HomeServer
 from pyhausbus.IBusDataListener import IBusDataListener
 from pyhausbus.ObjectId import ObjectId
+
+from homeassistant.const import CONF_HOST
 
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
@@ -33,6 +36,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers import device_registry as dr
 
+from .const import CONF_CONNECTION_TYPE, CONNECTION_TYPE_FIXED_IP
 from .device import HausbusDevice
 from .entity import HausbusEntity
 from .light import (Dimmer, HausbusDimmerLight, HausbusLedLight, HausbusBackLight, HausbusRGBDimmerLight, Led, LogicalButton, RGBDimmer)
@@ -76,6 +80,11 @@ class HausbusGateway(IBusDataListener):  # type: ignore[misc]
         self.devices: dict[str, HausbusDevice] = {}
         self.channels: dict[str, dict[tuple[str, str], HausbusEntity]] = {}
         self.events: dict[int, HausBusEvent] = {}
+        if config_entry.data.get(CONF_CONNECTION_TYPE) == CONNECTION_TYPE_FIXED_IP:
+            host = config_entry.data.get(CONF_HOST, "")
+            if host:
+                BusHandler.getInstance().broadcastIp = host
+
         self.home_server = HomeServer()
         self.home_server.addBusEventListener(self)
         self.home_server.addBusDeviceListener(self)
