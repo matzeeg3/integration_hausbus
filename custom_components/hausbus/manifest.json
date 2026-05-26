@@ -6,8 +6,8 @@
   ],
   "config_flow": true,
   "documentation": "https://haus-bus.de",
-  "issue_tracker": "https://github.com/matzeeg3/integration_hausbus/issues",
   "iot_class": "local_push",
+  "issue_tracker": "https://github.com/matzeeg3/integration_hausbus/issues",
   "loggers": [
     "pyhausbus"
   ],
