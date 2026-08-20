@@ -9,5 +9,4 @@ CONF_CONNECTION_TYPE = "connection_type"
 CONNECTION_TYPE_AUTO = "auto"
 CONNECTION_TYPE_FIXED_IP = "fixed_ip"
 
-CONF_DEVICE_ID = "device_id"
 CONF_CHANNEL_ID = "channel_id"

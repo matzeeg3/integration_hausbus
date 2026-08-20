@@ -16,5 +16,5 @@
     "pyhausbus==1.0.48"
   ],
   "single_config_entry": true,
-  "version": "1.0.7"
+  "version": "1.0.8"
 }

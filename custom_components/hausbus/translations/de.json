@@ -1,0 +1,104 @@
+{
+    "config": {
+        "flow_title": "Haus-Bus",
+        "step": {
+            "user": {
+                "title": "Haus-Bus einrichten",
+                "description": "Wählen Sie die Verbindungsart.",
+                "data": {
+                    "connection_type": "Verbindungsart"
+                }
+            },
+            "fixed_ip": {
+                "title": "Feste IP-Adresse",
+                "description": "Geben Sie die IP-Adresse des Haus-Bus Geräts ein.",
+                "data": {
+                    "host": "IP-Adresse"
+                }
+            },
+            "search_timeout": {
+                "description": "Zeitüberschreitung bei der Gerätesuche. Klicken Sie auf Senden, um es erneut zu versuchen."
+            }
+        },
+        "progress": {
+            "wait_for_device": "Suche nach Haus-Bus Geräten..."
+        },
+        "error": {
+            "invalid_host": "Ungültige IP-Adresse."
+        },
+        "abort": {
+            "already_configured": "Gerät ist bereits konfiguriert"
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Haus-Bus Kanal konfigurieren",
+                "description": "Wählen Sie den zu konfigurierenden Kanal.",
+                "data": {
+                    "channel_id": "Kanal"
+                }
+            },
+            "channel": {
+                "title": "Kanal konfigurieren: {channel_name}",
+                "data": {
+                    "close_time": "Schließzeit",
+                    "open_time": "Öffnungszeit",
+                    "invert_direction": "Richtung invertieren",
+                    "mode": "Dimmmodus",
+                    "dimming_time": "Zeit für Dimmvorgänge",
+                    "ramp_time": "Zeit für Dimmrampen",
+                    "dimming_start_brightness": "Start-Helligkeit",
+                    "dimming_end_brightness": "End-Helligkeit",
+                    "time_base": "Zeitbasis",
+                    "min_brightness": "Minimale Helligkeit",
+                    "max_on_time": "Maximale Einschaltzeit",
+                    "off_delay_time": "Ausschaltverzögerung",
+                    "hold_timeout": "Haltezeit für Hold-Erkennung",
+                    "double_click_timeout": "Zeit für Doppelklick-Erkennung",
+                    "event_button_pressed_active": "Event: Taste gedrückt",
+                    "event_button_released_active": "Event: Taste losgelassen",
+                    "event_button_hold_start_active": "Event: Halten gestartet",
+                    "event_button_hold_end_active": "Event: Halten beendet",
+                    "event_button_clicked_active": "Event: Klick",
+                    "event_button_double_clicked_active": "Event: Doppelklick",
+                    "led_feedback_active": "LED-Rückmeldung aktiv",
+                    "inverted": "Eingang invertieren",
+                    "debounce_time": "Entprellzeit"
+                }
+            }
+        },
+        "abort": {
+            "no_configurable_channels": "Es sind keine konfigurierbaren Haus-Bus Kanäle vorhanden.",
+            "configuration_timeout": "Die Konfiguration konnte nicht vom Gerät gelesen werden. Bitte erneut versuchen."
+        }
+    },
+    "selector": {
+        "connection_type": {
+            "options": {
+                "auto": "Auto-Discovery",
+                "fixed_ip": "Feste IP-Adresse"
+            }
+        },
+        "dimmer_mode": {
+            "options": {
+                "dim_trailing_edge": "Phasenabschnitt",
+                "dim_leading_edge": "Phasenanschnitt",
+                "switch_only": "Nur schalten"
+            }
+        }
+    },
+    "entity": {
+        "light": {
+            "dimmer": {
+                "name": "Dimmer"
+            },
+            "led": {
+                "name": "LED"
+            },
+            "rgbdimmer": {
+                "name": "RGB Dimmer"
+            }
+        }
+    }
+}

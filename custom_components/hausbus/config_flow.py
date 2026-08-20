@@ -34,7 +34,6 @@ from .binary_sensor import HausbusBinarySensor
 from .const import (
     CONF_CHANNEL_ID,
     CONF_CONNECTION_TYPE,
-    CONF_DEVICE_ID,
     CONNECTION_TYPE_AUTO,
     CONNECTION_TYPE_FIXED_IP,
     DOMAIN,
@@ -421,54 +420,18 @@ class HausbusOptionsFlowHandler(config_entries.OptionsFlow):
 
     def __init__(self) -> None:
         """Initialize the options flow."""
-        self._device_id: str | None = None
         self._channel_map: dict[str, HausbusEntity] = {}
         self._entity: HausbusEntity | None = None
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Let the user pick a Haus-Bus device to configure."""
+        """Let the user pick a channel of any Haus-Bus device to configure."""
         gateway = self.config_entry.runtime_data.gateway
-
-        devices = {
-            device_id: device.name
-            for device_id, device in gateway.devices.items()
-            if gateway.channels.get(device_id)
-        }
-        if not devices:
-            return self.async_abort(reason="no_devices")
-
-        if user_input is not None:
-            self._device_id = user_input[CONF_DEVICE_ID]
-            return await self.async_step_device()
-
-        return self.async_show_form(
-            step_id="init",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_DEVICE_ID): SelectSelector(
-                        SelectSelectorConfig(
-                            options=[
-                                SelectOptionDict(value=device_id, label=name)
-                                for device_id, name in devices.items()
-                            ],
-                            mode=SelectSelectorMode.DROPDOWN,
-                        )
-                    )
-                }
-            ),
-        )
-
-    async def async_step_device(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Let the user pick a configurable channel of the selected device."""
-        gateway = self.config_entry.runtime_data.gateway
-        channels = gateway.channels.get(self._device_id, {})
 
         self._channel_map = {
             entity.unique_id: entity
+            for device_id, channels in gateway.channels.items()
             for entity in channels.values()
             if type(entity) in _CHANNEL_TYPES
         }
@@ -480,7 +443,7 @@ class HausbusOptionsFlowHandler(config_entries.OptionsFlow):
             return await self.async_step_channel()
 
         return self.async_show_form(
-            step_id="device",
+            step_id="init",
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_CHANNEL_ID): SelectSelector(
@@ -488,7 +451,8 @@ class HausbusOptionsFlowHandler(config_entries.OptionsFlow):
                             options=[
                                 SelectOptionDict(
                                     value=unique_id,
-                                    label=f"{entity.name or entity._attr_name} "
+                                    label=f"{entity._device.name} - "
+                                    f"{entity.name or entity._attr_name} "
                                     f"({_CHANNEL_TYPES[type(entity)].type_label})",
                                 )
                                 for unique_id, entity in self._channel_map.items()
