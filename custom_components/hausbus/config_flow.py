@@ -13,6 +13,10 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_HOST
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.selector import (
+    BooleanSelector,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
@@ -215,16 +219,50 @@ def _attrs(entity: HausbusEntity) -> dict[str, Any]:
     return entity.extra_state_attributes or {}
 
 
+def _percent(field: str, default: int) -> tuple[vol.Marker, NumberSelector]:
+    """Number selector rendered as a 0-100% slider."""
+    return (
+        vol.Required(field, default=default),
+        NumberSelector(
+            NumberSelectorConfig(
+                min=0,
+                max=100,
+                step=1,
+                mode=NumberSelectorMode.SLIDER,
+                unit_of_measurement="%",
+            )
+        ),
+    )
+
+
+def _number(
+    field: str, default: int, *, min_value: int = 0
+) -> tuple[vol.Marker, NumberSelector]:
+    """Number selector rendered as a bounded input box with steppers."""
+    return (
+        vol.Required(field, default=default),
+        NumberSelector(
+            NumberSelectorConfig(min=min_value, mode=NumberSelectorMode.BOX)
+        ),
+    )
+
+
 def _cover_schema(entity: HausbusEntity) -> vol.Schema:
     attrs = _attrs(entity)
     return vol.Schema(
-        {
-            vol.Required("close_time", default=attrs.get("close_time", 0)): int,
-            vol.Required("open_time", default=attrs.get("open_time", 0)): int,
-            vol.Required(
-                "invert_direction", default=attrs.get("invert_direction", False)
-            ): bool,
-        }
+        dict(
+            [
+                _number("close_time", attrs.get("close_time", 0)),
+                _number("open_time", attrs.get("open_time", 0)),
+                (
+                    vol.Required(
+                        "invert_direction",
+                        default=attrs.get("invert_direction", False),
+                    ),
+                    BooleanSelector(),
+                ),
+            ]
+        )
     )
 
 
@@ -235,27 +273,34 @@ async def _cover_apply(entity: HausbusEntity, user_input: dict[str, Any]) -> Non
 def _dimmer_schema(entity: HausbusEntity) -> vol.Schema:
     attrs = _attrs(entity)
     return vol.Schema(
-        {
-            vol.Required(
-                "mode", default=attrs.get("mode", "switch_only")
-            ): SelectSelector(
-                SelectSelectorConfig(
-                    options=["dim_trailing_edge", "dim_leading_edge", "switch_only"],
-                    mode=SelectSelectorMode.DROPDOWN,
-                    translation_key="dimmer_mode",
-                )
-            ),
-            vol.Required("dimming_time", default=attrs.get("dimming_time", 0)): int,
-            vol.Required("ramp_time", default=attrs.get("ramp_time", 0)): int,
-            vol.Required(
-                "dimming_start_brightness",
-                default=attrs.get("dimming_start_brightness", 0),
-            ): int,
-            vol.Required(
-                "dimming_end_brightness",
-                default=attrs.get("dimming_end_brightness", 100),
-            ): int,
-        }
+        dict(
+            [
+                (
+                    vol.Required("mode", default=attrs.get("mode", "switch_only")),
+                    SelectSelector(
+                        SelectSelectorConfig(
+                            options=[
+                                "dim_trailing_edge",
+                                "dim_leading_edge",
+                                "switch_only",
+                            ],
+                            mode=SelectSelectorMode.DROPDOWN,
+                            translation_key="dimmer_mode",
+                        )
+                    ),
+                ),
+                _number("dimming_time", attrs.get("dimming_time", 0)),
+                _number("ramp_time", attrs.get("ramp_time", 0)),
+                _percent(
+                    "dimming_start_brightness",
+                    attrs.get("dimming_start_brightness", 0),
+                ),
+                _percent(
+                    "dimming_end_brightness",
+                    attrs.get("dimming_end_brightness", 100),
+                ),
+            ]
+        )
     )
 
 
@@ -265,9 +310,7 @@ async def _dimmer_apply(entity: HausbusEntity, user_input: dict[str, Any]) -> No
 
 def _rgb_dimmer_schema(entity: HausbusEntity) -> vol.Schema:
     attrs = _attrs(entity)
-    return vol.Schema(
-        {vol.Required("dimming_time", default=attrs.get("dimming_time", 0)): int}
-    )
+    return vol.Schema(dict([_number("dimming_time", attrs.get("dimming_time", 0))]))
 
 
 async def _rgb_dimmer_apply(entity: HausbusEntity, user_input: dict[str, Any]) -> None:
@@ -280,10 +323,12 @@ def _led_schema(entity: HausbusEntity) -> vol.Schema:
     if min_brightness is None and entity._configuration:
         min_brightness = entity._configuration.getMinBrightness()
     return vol.Schema(
-        {
-            vol.Required("time_base", default=attrs.get("time_base", 0)): int,
-            vol.Required("min_brightness", default=min_brightness or 0): int,
-        }
+        dict(
+            [
+                _number("time_base", attrs.get("time_base", 0)),
+                _percent("min_brightness", min_brightness or 0),
+            ]
+        )
     )
 
 
@@ -295,11 +340,13 @@ async def _led_apply(entity: HausbusEntity, user_input: dict[str, Any]) -> None:
 def _switch_schema(entity: HausbusEntity) -> vol.Schema:
     attrs = _attrs(entity)
     return vol.Schema(
-        {
-            vol.Required("max_on_time", default=attrs.get("max_on_time", 0)): int,
-            vol.Required("off_delay_time", default=attrs.get("off_delay_time", 0)): int,
-            vol.Required("time_base", default=attrs.get("time_base", 0)): int,
-        }
+        dict(
+            [
+                _number("max_on_time", attrs.get("max_on_time", 0)),
+                _number("off_delay_time", attrs.get("off_delay_time", 0)),
+                _number("time_base", attrs.get("time_base", 0)),
+            ]
+        )
     )
 
 
@@ -309,43 +356,47 @@ async def _switch_apply(entity: HausbusEntity, user_input: dict[str, Any]) -> No
 
 def _taster_schema(entity: HausbusEntity) -> vol.Schema:
     attrs = _attrs(entity)
+
+    def _bool(field: str, default: bool) -> tuple[vol.Marker, BooleanSelector]:
+        return (vol.Required(field, default=default), BooleanSelector())
+
     return vol.Schema(
-        {
-            vol.Required("hold_timeout", default=attrs.get("hold_timeout", 0)): int,
-            vol.Required(
-                "double_click_timeout", default=attrs.get("double_click_timeout", 0)
-            ): int,
-            vol.Required(
-                "event_button_pressed_active",
-                default=attrs.get("event_button_pressed_active", True),
-            ): bool,
-            vol.Required(
-                "event_button_released_active",
-                default=attrs.get("event_button_released_active", True),
-            ): bool,
-            vol.Required(
-                "event_button_hold_start_active",
-                default=attrs.get("event_button_hold_start_active", False),
-            ): bool,
-            vol.Required(
-                "event_button_hold_end_active",
-                default=attrs.get("event_button_hold_end_active", False),
-            ): bool,
-            vol.Required(
-                "event_button_clicked_active",
-                default=attrs.get("event_button_clicked_active", True),
-            ): bool,
-            vol.Required(
-                "event_button_double_clicked_active",
-                default=attrs.get("event_button_double_clicked_active", False),
-            ): bool,
-            vol.Required(
-                "led_feedback_active",
-                default=attrs.get("led_feedback_active", False),
-            ): bool,
-            vol.Required("inverted", default=attrs.get("inverted", False)): bool,
-            vol.Required("debounce_time", default=attrs.get("debounce_time", 40)): int,
-        }
+        dict(
+            [
+                _number("hold_timeout", attrs.get("hold_timeout", 0)),
+                _number("double_click_timeout", attrs.get("double_click_timeout", 0)),
+                _bool(
+                    "event_button_pressed_active",
+                    attrs.get("event_button_pressed_active", True),
+                ),
+                _bool(
+                    "event_button_released_active",
+                    attrs.get("event_button_released_active", True),
+                ),
+                _bool(
+                    "event_button_hold_start_active",
+                    attrs.get("event_button_hold_start_active", False),
+                ),
+                _bool(
+                    "event_button_hold_end_active",
+                    attrs.get("event_button_hold_end_active", False),
+                ),
+                _bool(
+                    "event_button_clicked_active",
+                    attrs.get("event_button_clicked_active", True),
+                ),
+                _bool(
+                    "event_button_double_clicked_active",
+                    attrs.get("event_button_double_clicked_active", False),
+                ),
+                _bool(
+                    "led_feedback_active",
+                    attrs.get("led_feedback_active", False),
+                ),
+                _bool("inverted", attrs.get("inverted", False)),
+                _number("debounce_time", attrs.get("debounce_time", 40)),
+            ]
+        )
     )
 
 
