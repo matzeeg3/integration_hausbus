@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import ipaddress
 import logging
+from collections.abc import Callable
 from typing import Any
 
 import voluptuous as vol
@@ -12,6 +13,7 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_HOST
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.selector import (
+    SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
@@ -24,12 +26,19 @@ from pyhausbus.HomeServer import HomeServer
 from pyhausbus.IBusDataListener import IBusDataListener
 from pyhausbus.ObjectId import ObjectId
 
+from .binary_sensor import HausbusBinarySensor
 from .const import (
+    CONF_CHANNEL_ID,
     CONF_CONNECTION_TYPE,
+    CONF_DEVICE_ID,
     CONNECTION_TYPE_AUTO,
     CONNECTION_TYPE_FIXED_IP,
     DOMAIN,
 )
+from .cover import HausbusCover
+from .entity import HausbusEntity
+from .light import HausbusDimmerLight, HausbusLedLight, HausbusRGBDimmerLight
+from .switch import HausbusSwitch
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -66,6 +75,13 @@ class ConfigFlow(config_entries.ConfigFlow, IBusDataListener, domain=DOMAIN):  #
         self._connection_data: dict[str, Any] = {}
         self.home_server = HomeServer()
         self.home_server.addBusEventListener(self)
+
+    @staticmethod
+    def async_get_options_flow(
+        _config_entry: config_entries.ConfigEntry,
+    ) -> HausbusOptionsFlowHandler:
+        """Create the options flow used to configure Haus-Bus devices."""
+        return HausbusOptionsFlowHandler()
 
     def remove_bus_event_listeners(self) -> None:
         """Cleanup after finishing the config flow."""
@@ -178,3 +194,278 @@ class ConfigFlow(config_entries.ConfigFlow, IBusDataListener, domain=DOMAIN):  #
 
         if isinstance(data, ModuleId):
             self._found_device = True
+
+
+class _ChannelTypeSpec:
+    """Describes how to build/apply the options form for one Haus-Bus channel type."""
+
+    def __init__(
+        self,
+        type_label: str,
+        build_schema: Callable[[HausbusEntity], vol.Schema],
+        apply: Callable[[HausbusEntity, dict[str, Any]], Any],
+    ) -> None:
+        """Set up the channel type spec."""
+        self.type_label = type_label
+        self.build_schema = build_schema
+        self.apply = apply
+
+
+def _attrs(entity: HausbusEntity) -> dict[str, Any]:
+    return entity.extra_state_attributes or {}
+
+
+def _cover_schema(entity: HausbusEntity) -> vol.Schema:
+    attrs = _attrs(entity)
+    return vol.Schema(
+        {
+            vol.Required("close_time", default=attrs.get("close_time", 0)): int,
+            vol.Required("open_time", default=attrs.get("open_time", 0)): int,
+            vol.Required(
+                "invert_direction", default=attrs.get("invert_direction", False)
+            ): bool,
+        }
+    )
+
+
+async def _cover_apply(entity: HausbusEntity, user_input: dict[str, Any]) -> None:
+    await entity.async_cover_set_configuration(**user_input)
+
+
+def _dimmer_schema(entity: HausbusEntity) -> vol.Schema:
+    attrs = _attrs(entity)
+    return vol.Schema(
+        {
+            vol.Required(
+                "mode", default=attrs.get("mode", "switch_only")
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    options=["dim_trailing_edge", "dim_leading_edge", "switch_only"],
+                    mode=SelectSelectorMode.DROPDOWN,
+                    translation_key="dimmer_mode",
+                )
+            ),
+            vol.Required("dimming_time", default=attrs.get("dimming_time", 0)): int,
+            vol.Required("ramp_time", default=attrs.get("ramp_time", 0)): int,
+            vol.Required(
+                "dimming_start_brightness",
+                default=attrs.get("dimming_start_brightness", 0),
+            ): int,
+            vol.Required(
+                "dimming_end_brightness",
+                default=attrs.get("dimming_end_brightness", 100),
+            ): int,
+        }
+    )
+
+
+async def _dimmer_apply(entity: HausbusEntity, user_input: dict[str, Any]) -> None:
+    await entity.async_dimmer_set_configuration(**user_input)
+
+
+def _rgb_dimmer_schema(entity: HausbusEntity) -> vol.Schema:
+    attrs = _attrs(entity)
+    return vol.Schema(
+        {vol.Required("dimming_time", default=attrs.get("dimming_time", 0)): int}
+    )
+
+
+async def _rgb_dimmer_apply(entity: HausbusEntity, user_input: dict[str, Any]) -> None:
+    await entity.async_rgb_set_configuration(**user_input)
+
+
+def _led_schema(entity: HausbusEntity) -> vol.Schema:
+    attrs = _attrs(entity)
+    min_brightness = attrs.get("min_brightness")
+    if min_brightness is None and entity._configuration:
+        min_brightness = entity._configuration.getMinBrightness()
+    return vol.Schema(
+        {
+            vol.Required("time_base", default=attrs.get("time_base", 0)): int,
+            vol.Required("min_brightness", default=min_brightness or 0): int,
+        }
+    )
+
+
+async def _led_apply(entity: HausbusEntity, user_input: dict[str, Any]) -> None:
+    await entity.async_led_set_min_brightness(user_input["min_brightness"])
+    await entity.async_led_set_configuration(user_input["time_base"])
+
+
+def _switch_schema(entity: HausbusEntity) -> vol.Schema:
+    attrs = _attrs(entity)
+    return vol.Schema(
+        {
+            vol.Required("max_on_time", default=attrs.get("max_on_time", 0)): int,
+            vol.Required("off_delay_time", default=attrs.get("off_delay_time", 0)): int,
+            vol.Required("time_base", default=attrs.get("time_base", 0)): int,
+        }
+    )
+
+
+async def _switch_apply(entity: HausbusEntity, user_input: dict[str, Any]) -> None:
+    await entity.async_switch_set_configuration(**user_input)
+
+
+def _taster_schema(entity: HausbusEntity) -> vol.Schema:
+    attrs = _attrs(entity)
+    return vol.Schema(
+        {
+            vol.Required("hold_timeout", default=attrs.get("hold_timeout", 0)): int,
+            vol.Required(
+                "double_click_timeout", default=attrs.get("double_click_timeout", 0)
+            ): int,
+            vol.Required(
+                "event_button_pressed_active",
+                default=attrs.get("event_button_pressed_active", True),
+            ): bool,
+            vol.Required(
+                "event_button_released_active",
+                default=attrs.get("event_button_released_active", True),
+            ): bool,
+            vol.Required(
+                "event_button_hold_start_active",
+                default=attrs.get("event_button_hold_start_active", False),
+            ): bool,
+            vol.Required(
+                "event_button_hold_end_active",
+                default=attrs.get("event_button_hold_end_active", False),
+            ): bool,
+            vol.Required(
+                "event_button_clicked_active",
+                default=attrs.get("event_button_clicked_active", True),
+            ): bool,
+            vol.Required(
+                "event_button_double_clicked_active",
+                default=attrs.get("event_button_double_clicked_active", False),
+            ): bool,
+            vol.Required(
+                "led_feedback_active",
+                default=attrs.get("led_feedback_active", False),
+            ): bool,
+            vol.Required("inverted", default=attrs.get("inverted", False)): bool,
+            vol.Required("debounce_time", default=attrs.get("debounce_time", 40)): int,
+        }
+    )
+
+
+async def _taster_apply(entity: HausbusEntity, user_input: dict[str, Any]) -> None:
+    await entity.async_push_button_set_configuration(**user_input)
+
+
+_CHANNEL_TYPES: dict[type[HausbusEntity], _ChannelTypeSpec] = {
+    HausbusCover: _ChannelTypeSpec("Rollladen", _cover_schema, _cover_apply),
+    HausbusDimmerLight: _ChannelTypeSpec("Dimmer", _dimmer_schema, _dimmer_apply),
+    HausbusRGBDimmerLight: _ChannelTypeSpec(
+        "RGB Dimmer", _rgb_dimmer_schema, _rgb_dimmer_apply
+    ),
+    HausbusLedLight: _ChannelTypeSpec("LED", _led_schema, _led_apply),
+    HausbusSwitch: _ChannelTypeSpec("Schalter", _switch_schema, _switch_apply),
+    HausbusBinarySensor: _ChannelTypeSpec("Taster", _taster_schema, _taster_apply),
+}
+
+
+class HausbusOptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle configuration of individual Haus-Bus device channels."""
+
+    def __init__(self) -> None:
+        """Initialize the options flow."""
+        self._device_id: str | None = None
+        self._channel_map: dict[str, HausbusEntity] = {}
+        self._entity: HausbusEntity | None = None
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Let the user pick a Haus-Bus device to configure."""
+        gateway = self.config_entry.runtime_data.gateway
+
+        devices = {
+            device_id: device.name
+            for device_id, device in gateway.devices.items()
+            if gateway.channels.get(device_id)
+        }
+        if not devices:
+            return self.async_abort(reason="no_devices")
+
+        if user_input is not None:
+            self._device_id = user_input[CONF_DEVICE_ID]
+            return await self.async_step_device()
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_DEVICE_ID): SelectSelector(
+                        SelectSelectorConfig(
+                            options=[
+                                SelectOptionDict(value=device_id, label=name)
+                                for device_id, name in devices.items()
+                            ],
+                            mode=SelectSelectorMode.DROPDOWN,
+                        )
+                    )
+                }
+            ),
+        )
+
+    async def async_step_device(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Let the user pick a configurable channel of the selected device."""
+        gateway = self.config_entry.runtime_data.gateway
+        channels = gateway.channels.get(self._device_id, {})
+
+        self._channel_map = {
+            entity.unique_id: entity
+            for entity in channels.values()
+            if type(entity) in _CHANNEL_TYPES
+        }
+        if not self._channel_map:
+            return self.async_abort(reason="no_configurable_channels")
+
+        if user_input is not None:
+            self._entity = self._channel_map[user_input[CONF_CHANNEL_ID]]
+            return await self.async_step_channel()
+
+        return self.async_show_form(
+            step_id="device",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_CHANNEL_ID): SelectSelector(
+                        SelectSelectorConfig(
+                            options=[
+                                SelectOptionDict(
+                                    value=unique_id,
+                                    label=f"{entity.name or entity._attr_name} "
+                                    f"({_CHANNEL_TYPES[type(entity)].type_label})",
+                                )
+                                for unique_id, entity in self._channel_map.items()
+                            ],
+                            mode=SelectSelectorMode.DROPDOWN,
+                        )
+                    )
+                }
+            ),
+        )
+
+    async def async_step_channel(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Show and apply the configuration form for the selected channel."""
+        entity = self._entity
+        assert entity is not None
+        spec = _CHANNEL_TYPES[type(entity)]
+
+        if user_input is not None:
+            await spec.apply(entity, user_input)
+            return self.async_create_entry(title="", data={})
+
+        if not await entity.ensure_configuration():
+            return self.async_abort(reason="configuration_timeout")
+
+        return self.async_show_form(
+            step_id="channel",
+            data_schema=spec.build_schema(entity),
+            description_placeholders={"channel_name": entity.name or entity._attr_name},
+        )

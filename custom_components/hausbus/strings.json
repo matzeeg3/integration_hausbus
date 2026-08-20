@@ -30,11 +30,69 @@
       "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Haus-Bus Gerät konfigurieren",
+        "description": "Wählen Sie das Gerät, dessen Kanäle Sie konfigurieren möchten.",
+        "data": {
+          "device_id": "Gerät"
+        }
+      },
+      "device": {
+        "title": "Kanal wählen",
+        "description": "Wählen Sie den zu konfigurierenden Kanal.",
+        "data": {
+          "channel_id": "Kanal"
+        }
+      },
+      "channel": {
+        "title": "Kanal konfigurieren: {channel_name}",
+        "data": {
+          "close_time": "Schließzeit",
+          "open_time": "Öffnungszeit",
+          "invert_direction": "Richtung invertieren",
+          "mode": "Dimmmodus",
+          "dimming_time": "Zeit für Dimmvorgänge",
+          "ramp_time": "Zeit für Dimmrampen",
+          "dimming_start_brightness": "Start-Helligkeit",
+          "dimming_end_brightness": "End-Helligkeit",
+          "time_base": "Zeitbasis",
+          "min_brightness": "Minimale Helligkeit",
+          "max_on_time": "Maximale Einschaltzeit",
+          "off_delay_time": "Ausschaltverzögerung",
+          "hold_timeout": "Haltezeit für Hold-Erkennung",
+          "double_click_timeout": "Zeit für Doppelklick-Erkennung",
+          "event_button_pressed_active": "Event: Taste gedrückt",
+          "event_button_released_active": "Event: Taste losgelassen",
+          "event_button_hold_start_active": "Event: Halten gestartet",
+          "event_button_hold_end_active": "Event: Halten beendet",
+          "event_button_clicked_active": "Event: Klick",
+          "event_button_double_clicked_active": "Event: Doppelklick",
+          "led_feedback_active": "LED-Rückmeldung aktiv",
+          "inverted": "Eingang invertieren",
+          "debounce_time": "Entprellzeit"
+        }
+      }
+    },
+    "abort": {
+      "no_devices": "Es sind keine konfigurierbaren Haus-Bus Geräte vorhanden.",
+      "no_configurable_channels": "Dieses Gerät hat keine konfigurierbaren Kanäle.",
+      "configuration_timeout": "Die Konfiguration konnte nicht vom Gerät gelesen werden. Bitte erneut versuchen."
+    }
+  },
   "selector": {
     "connection_type": {
       "options": {
         "auto": "Auto-Discovery",
         "fixed_ip": "Feste IP-Adresse"
+      }
+    },
+    "dimmer_mode": {
+      "options": {
+        "dim_trailing_edge": "Phasenabschnitt",
+        "dim_leading_edge": "Phasenanschnitt",
+        "switch_only": "Nur schalten"
       }
     }
   },

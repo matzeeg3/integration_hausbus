@@ -30,11 +30,69 @@
             "invalid_host": "Invalid IP address."
         }
     },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Configure Haus-Bus device",
+                "description": "Choose the device whose channels you want to configure.",
+                "data": {
+                    "device_id": "Device"
+                }
+            },
+            "device": {
+                "title": "Choose channel",
+                "description": "Choose the channel to configure.",
+                "data": {
+                    "channel_id": "Channel"
+                }
+            },
+            "channel": {
+                "title": "Configure channel: {channel_name}",
+                "data": {
+                    "close_time": "Close time",
+                    "open_time": "Open time",
+                    "invert_direction": "Invert direction",
+                    "mode": "Dimming mode",
+                    "dimming_time": "Time for dimming",
+                    "ramp_time": "Time for ramps",
+                    "dimming_start_brightness": "Start brightness",
+                    "dimming_end_brightness": "End brightness",
+                    "time_base": "Time base",
+                    "min_brightness": "Minimum brightness",
+                    "max_on_time": "Max on time",
+                    "off_delay_time": "Off delay time",
+                    "hold_timeout": "Hold timeout",
+                    "double_click_timeout": "Double click timeout",
+                    "event_button_pressed_active": "Event: button pressed",
+                    "event_button_released_active": "Event: button released",
+                    "event_button_hold_start_active": "Event: hold start",
+                    "event_button_hold_end_active": "Event: hold end",
+                    "event_button_clicked_active": "Event: clicked",
+                    "event_button_double_clicked_active": "Event: double clicked",
+                    "led_feedback_active": "LED feedback active",
+                    "inverted": "Invert input",
+                    "debounce_time": "Debounce time"
+                }
+            }
+        },
+        "abort": {
+            "no_devices": "There are no configurable Haus-Bus devices.",
+            "no_configurable_channels": "This device has no configurable channels.",
+            "configuration_timeout": "Could not read the configuration from the device. Please try again."
+        }
+    },
     "selector": {
         "connection_type": {
             "options": {
                 "auto": "Auto-Discovery",
                 "fixed_ip": "Fixed IP address"
+            }
+        },
+        "dimmer_mode": {
+            "options": {
+                "dim_trailing_edge": "Trailing edge",
+                "dim_leading_edge": "Leading edge",
+                "switch_only": "Switch only"
             }
         }
     },
