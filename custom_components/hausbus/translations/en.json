@@ -33,7 +33,14 @@
     "options": {
         "step": {
             "init": {
-                "title": "Configure Haus-Bus channel",
+                "title": "Configure Haus-Bus device",
+                "description": "Choose the device whose channels you want to configure.",
+                "data": {
+                    "device_id": "Device"
+                }
+            },
+            "device": {
+                "title": "Choose channel",
                 "description": "Choose the channel to configure.",
                 "data": {
                     "channel_id": "Channel"
@@ -69,7 +76,8 @@
             }
         },
         "abort": {
-            "no_configurable_channels": "There are no configurable Haus-Bus channels.",
+            "no_devices": "There are no configurable Haus-Bus devices.",
+            "no_configurable_channels": "This device has no configurable channels.",
             "configuration_timeout": "Could not read the configuration from the device. Please try again."
         }
     },

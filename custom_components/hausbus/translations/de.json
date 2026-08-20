@@ -33,7 +33,14 @@
     "options": {
         "step": {
             "init": {
-                "title": "Haus-Bus Kanal konfigurieren",
+                "title": "Haus-Bus Gerät konfigurieren",
+                "description": "Wählen Sie das Gerät, dessen Kanäle Sie konfigurieren möchten.",
+                "data": {
+                    "device_id": "Gerät"
+                }
+            },
+            "device": {
+                "title": "Kanal wählen",
                 "description": "Wählen Sie den zu konfigurierenden Kanal.",
                 "data": {
                     "channel_id": "Kanal"
@@ -69,7 +76,8 @@
             }
         },
         "abort": {
-            "no_configurable_channels": "Es sind keine konfigurierbaren Haus-Bus Kanäle vorhanden.",
+            "no_devices": "Es sind keine konfigurierbaren Haus-Bus Geräte vorhanden.",
+            "no_configurable_channels": "Dieses Gerät hat keine konfigurierbaren Kanäle.",
             "configuration_timeout": "Die Konfiguration konnte nicht vom Gerät gelesen werden. Bitte erneut versuchen."
         }
     },
