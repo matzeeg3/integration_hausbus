@@ -75,6 +75,9 @@
                 }
             }
         },
+        "error": {
+            "apply_failed": "Die Konfiguration konnte nicht an das Gerät gesendet werden. Bitte erneut versuchen."
+        },
         "abort": {
             "no_devices": "Es sind keine konfigurierbaren Haus-Bus Geräte vorhanden.",
             "no_configurable_channels": "Dieses Gerät hat keine konfigurierbaren Kanäle.",

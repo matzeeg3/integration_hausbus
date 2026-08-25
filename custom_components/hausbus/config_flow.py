@@ -219,6 +219,10 @@ def _attrs(entity: HausbusEntity) -> dict[str, Any]:
     return entity.extra_state_attributes or {}
 
 
+def _channel_label(entity: HausbusEntity) -> str:
+    return entity.name or entity._attr_name or entity.entity_id
+
+
 def _percent(field: str, default: int) -> tuple[vol.Marker, NumberSelector]:
     """Number selector rendered as a 0-100% slider."""
     return (
@@ -446,6 +450,8 @@ class HausbusOptionsFlowHandler(config_entries.OptionsFlow):
             self._device_id = user_input[CONF_DEVICE_ID]
             return await self.async_step_device()
 
+        sorted_devices = sorted(devices.items(), key=lambda item: item[1].lower())
+
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
@@ -454,7 +460,7 @@ class HausbusOptionsFlowHandler(config_entries.OptionsFlow):
                         SelectSelectorConfig(
                             options=[
                                 SelectOptionDict(value=device_id, label=name)
-                                for device_id, name in devices.items()
+                                for device_id, name in sorted_devices
                             ],
                             mode=SelectSelectorMode.DROPDOWN,
                         )
@@ -482,20 +488,25 @@ class HausbusOptionsFlowHandler(config_entries.OptionsFlow):
             self._entity = self._channel_map[user_input[CONF_CHANNEL_ID]]
             return await self.async_step_channel()
 
+        options = sorted(
+            (
+                SelectOptionDict(
+                    value=unique_id,
+                    label=f"{_channel_label(entity)} "
+                    f"({_CHANNEL_TYPES[type(entity)].type_label})",
+                )
+                for unique_id, entity in self._channel_map.items()
+            ),
+            key=lambda option: option["label"].lower(),
+        )
+
         return self.async_show_form(
             step_id="device",
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_CHANNEL_ID): SelectSelector(
                         SelectSelectorConfig(
-                            options=[
-                                SelectOptionDict(
-                                    value=unique_id,
-                                    label=f"{entity.name or entity._attr_name} "
-                                    f"({_CHANNEL_TYPES[type(entity)].type_label})",
-                                )
-                                for unique_id, entity in self._channel_map.items()
-                            ],
+                            options=options,
                             mode=SelectSelectorMode.DROPDOWN,
                         )
                     )
@@ -510,10 +521,24 @@ class HausbusOptionsFlowHandler(config_entries.OptionsFlow):
         entity = self._entity
         assert entity is not None
         spec = _CHANNEL_TYPES[type(entity)]
+        errors: dict[str, str] = {}
 
         if user_input is not None:
-            await spec.apply(entity, user_input)
-            return self.async_create_entry(title="", data={})
+            # NumberSelector always returns floats; the pyhausbus proxies
+            # need plain ints to build the bus message.
+            normalized_input = {
+                key: int(value) if isinstance(value, float) else value
+                for key, value in user_input.items()
+            }
+            try:
+                await spec.apply(entity, normalized_input)
+            except Exception:
+                _LOGGER.exception(
+                    "Failed to apply configuration for %s", entity.entity_id
+                )
+                errors["base"] = "apply_failed"
+            else:
+                return self.async_create_entry(title="", data={})
 
         if not await entity.ensure_configuration():
             return self.async_abort(reason="configuration_timeout")
@@ -521,5 +546,6 @@ class HausbusOptionsFlowHandler(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="channel",
             data_schema=spec.build_schema(entity),
-            description_placeholders={"channel_name": entity.name or entity._attr_name},
+            description_placeholders={"channel_name": _channel_label(entity)},
+            errors=errors,
         )

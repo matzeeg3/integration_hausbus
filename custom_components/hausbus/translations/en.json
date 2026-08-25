@@ -75,6 +75,9 @@
                 }
             }
         },
+        "error": {
+            "apply_failed": "Could not send the configuration to the device. Please try again."
+        },
         "abort": {
             "no_devices": "There are no configurable Haus-Bus devices.",
             "no_configurable_channels": "This device has no configurable channels.",
